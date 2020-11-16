@@ -1,0 +1,30 @@
+#include <iostream>
+using namespace std;
+
+int main()
+{
+     setlocale(LC_ALL, "Russian");
+
+     b[10];  //Какие-то 6 чисел
+     b[0] = {0};    b[1] = {0};
+     b[2] = {0};    b[3] = {0};
+     b[4] = {0};    b[5] = {0};
+     int summa = 0;
+
+     cin >> b[0];      cin >> b[1];//Читаются с экрана
+     cin >> b[2];      cin >> b[3];
+     cin >> b[4];      cin >> b[5];
+
+     while (b[10] > 0)
+     {
+       if (b[10] > 0)     summa = summa + b[10];
+       else               cout << b[10] << " - Отрицательное число" << endl;
+     }
+
+     if (summa == 0)         cout << "Все отрицательные" << endl;
+     else if (summa < 10)    cout << "Сумма положительных чисел " << summa << endl;
+     else
+          cout << "Сумма положительных чисел " << summa << endl;
+
+    return 0;
+}

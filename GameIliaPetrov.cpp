@@ -1,0 +1,437 @@
+#include "TXLib.h"
+#include "ManGun.cpp"
+#include <fstream>     //Подключение библиотеки,которая читает файлы
+using namespace std;   //название имени пространства для настройки скорости мишени
+
+struct Tank
+{
+    int x;
+    int y;
+    int hp;
+    int kadr;
+    HDC right;
+    HDC left;
+    HDC picture;
+};
+struct Bullet
+{
+    int X;
+    int Y;
+    bool Right;
+    bool Visible;
+
+};
+struct Target
+{
+    int x;
+    int y;
+    HDC picture;
+};
+struct Aptechka
+{
+    int x;
+    int y;
+    bool Visible;
+    HDC picture;
+};
+
+void drawTank(Tank tank1, int width, int height)
+{
+    txTransparentBlt (txDC(), tank1.x, tank1.y, width, height,tank1.picture,490 * tank1.kadr,0,TX_WHITE);
+    txSetFillColor(TX_WHITE);
+    txRectangle(tank1.x, tank1.y - 30, tank1.x + 100, tank1.y - 10);
+    txSetFillColor(TX_GREEN);
+    txRectangle(tank1.x, tank1.y - 30, tank1.x + 10 * tank1.hp, tank1.y - 10);
+}
+
+int main()
+{
+    txCreateWindow (1200, 600);
+    //Курсора нет
+    txTextCursor(false);
+    //После завершения на крестик нажимать не надо
+    txDisableAutoPause();
+
+    //фоны
+    HDC Labirint = txLoadImage ("Pictures/Labirint.bmp");
+    HDC City = txLoadImage ("Pictures/City.bmp");
+    HDC NeonCity = txLoadImage ("Pictures/NeonCity.bmp");
+    HDC aptechka = txLoadImage ("Pictures/aptechka.bmp");
+    HDC Forest = txLoadImage ("Pictures/Forest.bmp");
+
+    //Аптечка
+    Aptechka aptechka1 = {250, 515, false, txLoadImage ("Pictures/aptechka.bmp")};
+
+    //Массив человечков
+    Mangun mangun[10];
+    mangun[0] = {200, 200, 111, 131,  6 ,0,
+    txLoadImage ("Pictures/mangunright.bmp"),
+    txLoadImage ("Pictures/mangunleft.bmp"),
+    txLoadImage ("Pictures/mangunleft.bmp"),
+    VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN};
+
+    //Танк
+    Tank tank1 = {400, 400, 10 ,0,  txLoadImage ("Pictures/tankright.bmp"),
+                                    txLoadImage ("Pictures/tankleft.bmp"),
+                                    tank1.left};
+    int speed = -13;
+
+    //Мишень(одна на все уровни с разными размерами)
+    Target target1 = {950, 260,
+    txLoadImage ("Pictures/target1.bmp")};
+    int speed4 = -9;
+
+
+    //На первом уровне скорость мишени можно изменить в настройках скорости
+    char stroka[50];                          //Задаём строку
+    ifstream file("Настройки скорости.txt");  //открыли файл
+    file.getline(stroka,50);                  //Какой-то текст
+    file.getline(stroka,50);                  //Какой-то текст
+    speed4 = atoi(stroka);                    //Смена скорости мишени
+    file.close();                             //Закрыли файл
+
+
+    //пули
+    Bullet bullet1 = {230,277,true,false};
+    Bullet bullet3 = {400,400,true,false};
+
+
+    //сначала меню паузы нет
+    bool pauseMode = false;
+    int level = 1;
+
+    //тут идут все уровни и все объекты пяти  уровней
+    bool popal = false;
+    while ( !GetAsyncKeyState('X') &&
+            level < 6)
+    {
+        //сначала очищаем фон и блокируем мигание
+        txBegin();
+        txSetFillColor(TX_GREEN);
+        txClear();
+
+        //Фон
+        if (level == 1)         txBitBlt (txDC(), 0, 0, txGetExtentX(), 600,Labirint);
+        else if (level == 2)    txBitBlt (txDC(), 0, 0, txGetExtentX(), 600,NeonCity);
+        else if (level == 3)    txBitBlt (txDC(), 0, 0, txGetExtentX(), 600,City);
+        else if (level == 4)    txBitBlt (txDC(), 0, 0, txGetExtentX(), 600,Forest);
+        else if (level == 5)    txBitBlt (txDC(), 0, 0, txGetExtentX(), 600,Labirint);
+
+
+        //Пауза
+        if (pauseMode)
+        {
+            //Меню паузы
+            txSetFillColor(TX_WHITE);
+
+            txRectangle(0, 0, 200, 50);
+            txDrawText (0, 0, 200, 50, " Выход ");
+            if (txMouseX() >= 0 &&     txMouseX() <= 200 &&
+                txMouseY() >= 0 &&     txMouseY() <= 50 &&    txMouseButtons() == 1)
+            {
+                return 0;
+            }
+
+
+            //Меню паузы
+            txRectangle(300, 0, 500, 50);
+            txDrawText (300, 0, 500, 50, "Продолжить игру");
+            if (txMouseX() >= 300 &&   txMouseX() <= 500 &&
+                txMouseY() >= 0 &&     txMouseY() <= 50 &&   txMouseButtons() == 1)
+            {
+                pauseMode = false;
+            }
+
+
+            //Меню паузы
+            txRectangle(600, 0, 800, 50);
+            txDrawText (600, 0, 800, 50, "Сайт");
+            if (txMouseX() >= 600 &&   txMouseX() <= 800 &&
+                txMouseY() >= 0 &&     txMouseY() <= 50 &&    txMouseButtons() == 1)
+            {
+                system("start file:///C:/Users/SAF/Desktop/%D0%9A%D0%BE%D0%B4%20%D0%BD%D0%B0%20HTML5/%D0%9A%D0%BE%D0%B4%20%D0%BD%D0%B0%20HTML5.htm");
+            }
+
+        }
+        //объединение всех объектов пяти уровней
+        else
+        {
+            if (GetAsyncKeyState(VK_ESCAPE))
+            {
+               pauseMode = true;
+            }
+
+            //рисование мишений всех уровней по порядку
+            if (level == 1)         txTransparentBlt (txDC(), target1.x, target1.y, 228, 228, target1.picture,0,0,TX_WHITE);
+            else if (level == 2)    txTransparentBlt (txDC(), target1.x, target1.y, 140, 140, target1.picture,0,0,TX_WHITE);
+            else if (level == 3)    txTransparentBlt (txDC(), target1.x, target1.y,  95,  95, target1.picture,0,0,TX_WHITE);
+            else if (level == 4)    txTransparentBlt (txDC(), target1.x, target1.y,  72,  72, target1.picture,0,0,TX_WHITE);
+            else if (level == 5)    txTransparentBlt (txDC(), target1.x, target1.y,  43,  43, target1.picture,0,0,TX_WHITE);
+
+
+            //текст всех уровней
+            txSelectFont("Arial", 40);
+            txSetColor(TX_BLACK);
+
+            if (level == 1)         txDrawText(100, 20, txGetExtentX() - 100, 200,
+                                          "Цель - попасть в мишень. Выход по X. Стрельба по SPACE Движение по UP И DOWN\nС каждым уровнем мишень становится всё меньше и меньше\nСкорость мишени с каждым уровнем увеличивается. 1 уровень");
+
+            else if (level == 2)    txDrawText(100, 30, txGetExtentX() - 100, 200,
+                                          "Мишень стала меньше, попади в неё!\nСтрельба по SPACE Движение по UP И DOWN\nСкорость мишени с каждым уровнем увеличивается. 2 уровень.");
+
+            else if (level == 3)    txDrawText(100, 30, txGetExtentX() - 100, 200,
+                                          "Мишень стала ещё меньше, не промахнись!\nСтрельба по SPACE Движение по UP И DOWN\nСкорость мишени с каждым уровнем увеличивается. 3 уровень.");
+
+
+            else if (level == 4)    txDrawText(100, 20, txGetExtentX() - 100, 200,
+                                          "Мишень вообще маленькая, стреляй по ней!\nСтрельба по SPACE Движение по UP И DOWN\nСкорость мишени с каждым уровнем увеличивается. 4 уровень.");
+
+
+            else if (level == 5)    txDrawText(100, 20, txGetExtentX() - 100, 200,
+                                          "Последний уровень, удачи!\nСтрельба по SPACE Движение по UP И DOWN\n5 уровень.");
+
+
+            //Рисование танка
+            drawTank(tank1,343,149);
+
+            //Герой
+            drawMan(mangun[0]);
+            //При движении персонажа выводит его координаты(можно убрать, так как не нужно)
+            char stroka[100];
+            sprintf(stroka, "Координаты = %d, %d", mangun[0].x, mangun[0].y);
+            txTextOut(100, 500, stroka);
+            //Смена картинки и движение только вверх и вниз персонажа
+            moveMangun(&mangun[0].x, &mangun[0].y, &mangun[0].kadr, VK_UP, VK_DOWN);
+            mangun[0].picture = changeMangunPic(mangun[0]);
+            //Проверка столкновения с границами(герой)
+            if (   mangun[0].x > txGetExtentX() ||
+                   mangun[0].y < 0 ||
+                   mangun[0].x < 0)
+            {
+                mangun[0].x = 200;
+                mangun[0].y = 200;
+            }
+
+
+
+            //Полет пули1
+            if (bullet1.Visible)
+            {
+                txSetFillColor(TX_GREEN);
+                txCircle(bullet1.X,bullet1.Y, 5);
+            }
+
+
+
+            if (bullet1.Visible && bullet1.Right)
+                bullet1.X = bullet1.X + 20;
+            if (bullet1.Visible && !bullet1.Right)
+                bullet1.X = bullet1.X - 20;
+
+
+
+
+
+            if (GetAsyncKeyState(VK_SPACE))
+            {
+                bullet1.Visible = true;
+                if (level <= 6)
+                {
+                    bullet1.X = mangun[0].x + 50;
+                    bullet1.Y = mangun[0].y + 5;
+                    bullet1.Right = (mangun[0].picture == mangun[0].Right);
+                }
+            }
+
+
+
+            //высота мишений всех уровней
+            int height = 0;
+            if (level == 1) height = 228;
+            else if (level == 2) height = 140;
+            else if (level == 3) height = 95;
+            else if (level == 4) height = 72;
+            else if (level == 5) height = 43;
+
+
+
+            //движение мишени1(одна мишень на все уровни)
+            target1.y = target1.y + speed4;
+            if (target1.y > txGetExtentY() - height) //height - высота
+            {
+                speed4 = -speed4;
+            }
+            else if (target1.y < 0)
+            {
+                speed4 = -speed4;
+            }
+
+
+
+            //Полёт  пули танка
+            if (bullet3.Visible && bullet3.Right)
+                bullet3.X = bullet3.X + 30;
+            if (bullet3.Visible && !bullet3.Right)
+                bullet3.X = bullet3.X - 30;
+            if (GetAsyncKeyState('G'))
+            {
+                bullet3.Visible = true;
+                bullet3.X = tank1.x + 50;
+                bullet3.Y = tank1.y + 5;
+                bullet3.Right = (tank1.picture == tank1.right);
+            }
+
+
+
+            //бот танк
+            tank1.x = tank1.x + speed;
+            if (tank1.x > txGetExtentX() - 400) //400 - ширина
+            {
+                 speed = -speed;
+                 tank1.picture = tank1.left;
+            }
+            else if (tank1.x < 0)
+            {
+                 speed = -speed;
+                 tank1.picture = tank1.right;
+            }
+
+
+
+            //Столкновение мэнган2 с аптечкой
+            if (aptechka1.Visible &&
+                aptechka1.x + 30 > mangun[0].x &&
+                aptechka1.x + 30 < mangun[0].x + 83 &&
+                aptechka1.y + 30 > mangun[0].y &&
+                aptechka1.y + 30 < mangun[0].y + 83)
+            {
+
+                txSelectFont("Comic Sanc Ms", 40);
+                txTextOut(200, 200, "ПОПАДАНИЕ!");
+                txSleep(1000);
+                aptechka1.Visible = false;
+            }
+
+
+
+            //Столкновение всех пулей со всеми мишениями(С каждым уровнем, скорость разная)
+
+            //Столкновение пули1 с мишенью 1(эта мишень относится ко всем уровням)
+            if (bullet1.Visible &&
+                bullet1.X > target1.x + height * 0.2 &&
+                bullet1.X < target1.x + height * 0.8 &&
+                bullet1.Y > target1.y + height * 0.2 &&
+                bullet1.Y < target1.y + height * 0.8)
+            {
+                txSelectFont("Arial",50);
+                txTextOut(530, 290, "ПОПАДАНИЕ!");
+                level = level + 1;
+                txSleep(500);
+                bullet1.Visible = false;
+
+                //Столкновение пули1 с мишенью 1(1 уровень)
+                if (level == 1)
+                {
+                    target1 = {950, 260, txLoadImage ("Pictures/target1.bmp")};
+                    speed4 = -9;
+                }
+                //Столкновение пули1 с мишенью2(2 уровень)
+                else if (level == 2)
+                {
+                    target1 = {1060, 260, txLoadImage ("Pictures/target2.bmp")};
+                    speed4 = -10;
+                }
+                //Столкновение пули1 с мишенью3(3 уровень)
+                else if(level == 3)
+                {
+                    target1 = {1100, 260, txLoadImage ("Pictures/target3.bmp")};
+                    speed4 = -11;
+                }
+                //Столкновение пули1 с мишенью4(4 уровень)
+                else if(level == 4)
+                {
+                    target1 = {1130, 260, txLoadImage ("Pictures/target4.bmp")};
+                    speed4 = -12;
+                }
+                //Столкновение пули1 с мишенью5(5 уровень)
+                else if(level == 5)
+                {
+                    target1 = {1155, 260, txLoadImage ("Pictures/target5.bmp")};
+                    speed4 = -13;
+                }
+
+            }
+        }
+
+        //пауза
+        txSleep(20);
+
+    }
+
+    //Если выйграл, то победа, иначе поражение(Поражение происходит при выходе на X-English)
+    if (level >= 6)
+    {
+        txPlaySound("MusicWin.wav",SND_ASYNC);
+        txSelectFont("Arial",115);
+        txTextOut (430, 180, "Победа!");
+    }
+    else
+    {
+        txPlaySound("MusicDefeat.wav",SND_ASYNC);
+        txSelectFont("Arial",115);
+        txTextOut (390, 180, "Поражение.");
+
+    }
+    txSleep(2000);
+
+
+
+    //тут идёт завершающая заставка игры
+    int y_titres = 0;
+    while (y_titres > -1000)
+    {
+       txBegin();
+       txSetFillColor(TX_BLACK);
+       txClear();
+       txSetColor(TX_WHITE);
+       txSelectFont("Arial",115);
+       txDrawText(0, y_titres, txGetExtentX(), 1500 + y_titres,
+             "Данная игра создана\n"
+             "\n"
+             "исключительно в развлекательно\n"
+             "\n"
+             "юмористических сценах и не несёт\n"
+             "\n"
+             "за собой никакого\n"
+             "\n"
+             "скрытого подтекста\n"
+             "\n"
+             "Автор: Илья Петров\n"
+        );
+
+     txSleep(30);
+     y_titres = y_titres - 8;
+   }
+
+
+    //удаляем все картинки
+    txDeleteDC (tank1.picture);
+    txDeleteDC (mangun[0].picture);
+    txDeleteDC (mangun[0].Left);
+    txDeleteDC (mangun[0].Right);
+    txDeleteDC (Labirint);
+    txDeleteDC (City);
+    txDeleteDC (NeonCity);
+    txDeleteDC (Forest);
+    txDeleteDC (target1.picture);
+    txDeleteDC (aptechka);
+
+    return 0;
+}
+
+
+
+
+
+
+
